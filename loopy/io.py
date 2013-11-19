@@ -10,7 +10,7 @@ def loadhdf5(fname,variable):
     h5file.close()
     return data
 
-def writehdf5(fname, loc, data, new=False):
+def writehdf5(fname, name, data, new=False):
     """
     .. py:function:: writehdf5(fname, name, data, new=False)
 
