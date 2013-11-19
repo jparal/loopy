@@ -1,7 +1,10 @@
+*~
 *.py[cod]
 
-# C extensions
+# Binary data
 *.so
+*.h5
+*.hdf
 
 # Packages
 *.egg
