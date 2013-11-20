@@ -3,12 +3,12 @@ import tables as pt
 import numpy as np
 import loopy as lpy
 
-def loadhdf5(fname, path='/'):
+def readhdf5(fname, path='/'):
     """
     .. py:function:: writehdf5(fname, path='/')
 
     The function traverse HDF5 files and creates structured dictionary. We assume
-    only CArry data types to be stored inside of HDF5.
+    only CArray data type to be stored in the file.
 
     :param fname: File name to read.
     :param path: Root path from where to start reading.
