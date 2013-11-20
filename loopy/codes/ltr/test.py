@@ -5,6 +5,7 @@ from IPython.parallel import Client
 from scipy.interpolate import griddata
 from os.path import exists
 import tables as pytab
+import time
 
 import loopy as lpy
 from loopy.codes import ltr
@@ -36,6 +37,7 @@ sim = ltr.FileIter(prefix, dbeg, dend, step)
 
 def interpolate_mhd(mhd):
     import loopy as lpy
+    print(mhd.fname)
     dat = lpy.struct()
     esph = mhd.cart2sph(mhd.E)
     dat.Bz = mhd.interp(mhd.B.z, xyzmesh).squeeze()
@@ -47,7 +49,14 @@ client = Client()
 view = client[:]
 # Push the variables
 view['xyzmesh'] = xyzmesh
-retval = view.map_sync(interpolate_mhd, sim)
+retval = view.map_async(interpolate_mhd, sim)
+while True:
+    if retval.progress > 99.0: break
+    print('Completed: %.2f%%' % retval.progress)
+    time.sleep(5)
+
+#retval.display_outputs()
+retval.get()
 client.close()
 
 # dat = map(interpolate_mhd, sim)
@@ -58,8 +67,8 @@ dat.Erad = array( [d.Erad for d in retval] )
 
 writehdf5(oname, '/', dat, new=True)
 
-plt.close('all')
-ax = plt.subplot(221, polar=True)
-im = ax.contourf(phirng, radrng, transpose((Ephi[0,:,:])), 100)
-ax.set_rmin(0.)
-colorbar(im)
+# plt.close('all')
+# ax = plt.subplot(221, polar=True)
+# im = ax.contourf(phirng, radrng, transpose((Ephi[0,:,:])), 100)
+# ax.set_rmin(0.)
+# colorbar(im)
