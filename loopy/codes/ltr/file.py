@@ -10,7 +10,7 @@ __all__ = ['FileIter']
 
 class FileIter(object):
     def __init__(self, prefix, start, stop, step_sec,
-                 skip = 0, step = 1, file_obj=MHDFile):
+                 itskip = 0, itstep = 1, file_obj=MHDFile):
         self.prefix = prefix
         start = np.array(start).copy()
         start.resize(6)
