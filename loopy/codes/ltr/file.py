@@ -9,7 +9,8 @@ from .mhd import MHDFile
 __all__ = ['FileIter']
 
 class FileIter(object):
-    def __init__(self, prefix, start, stop, step_sec, file_obj=MHDFile):
+    def __init__(self, prefix, start, stop, step_sec,
+                 skip = 0, step = 1, file_obj=MHDFile):
         self.prefix = prefix
         start = np.array(start).copy()
         start.resize(6)
@@ -21,9 +22,11 @@ class FileIter(object):
         self.step_sec = step_sec
         self.file_obj = file_obj
         self._iter = 0
+        self._skip = skip
+        self._step = step
 
     def __iter__(self):
-        self._iter = 0
+        self._iter = self._skip
         return self
 
     def next(self):
@@ -32,7 +35,7 @@ class FileIter(object):
         if date > self.stop:
             raise StopIteration
 
-        self._iter += 1
+        self._iter += self._step
         # Example: baker_mhd_2012-10-07T00-09-00Z.hdf
         date_str='{:%Y-%m-%dT%H-%M-%SZ}'.format(date)
         fname = self.file_obj.get_fname_format()
