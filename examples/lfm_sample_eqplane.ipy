@@ -18,12 +18,12 @@ from loopy.codes import ltr
 from loopy.io import readhdf5, writehdf5
 
 ######################################################################
-dbeg = [2013, 3, 16, 18] # [2012, 10, 7, 4] (LM_OMNI)
-dend = [2013, 3, 18] # dend = [2013, 3, 18]
+dbeg = [2012, 10, 7] # [2012, 10, 7, 4] (LM_OMNI)
+dend = [2012, 10, 7, 0, 2] # dend = [2013, 3, 18]
 step = 30 # (sec)
 
-prefix = '../dat/LM_dt30/Mar17-LM'
-oname = '../tmp/sample_eqplane_lm.h5'
+prefix = '../dat/baker'
+oname = '../tmp/sample_mpause_lm.h5'
 
 #prefix = '../dat/LR_OMNI_dt30/07-10Oct2012_lfmrcm'
 #oname = '../tmp/sample_eqplane_lr.h5'
@@ -46,30 +46,22 @@ dat._dend = dend
 dat.radrng = arange(3,14,0.1, dtype=float32)
 dat.phirng = linspace(0, 2*pi, 25)
 
-dat.radmsh, dat.phimsh, z = meshgrid(dat.radrng, dat.phirng, [0])
-x = dat.radmsh * cos(dat.phimsh)
-y = dat.radmsh * sin(dat.phimsh)
-xyzmesh = [x,y,z]
-
-sim = ltr.FileIter(prefix, dbeg, dend, step, skip=skip)
+sim = ltr.FileIter(prefix, dbeg, dend, step, itskip=skip)
 
 def interpolate_mhd(mhd):
     import loopy as lpy
     import numpy as np
     radrng = np.arange(3,14,0.1, dtype=np.float32)
     phirng = np.linspace(0, 2*np.pi, 25)
-    radmsh, phimsh, z = np.meshgrid(radrng, phirng, [0])
-    x = radmsh * np.cos(phimsh)
-    y = radmsh * np.sin(phimsh)
-    xyzmesh = [x,y,z]
 
     dat = lpy.struct()
     esph = mhd.cart2sph(mhd.E)
-    dat.Bz = mhd.interp(mhd.B.z, xyzmesh).squeeze()
-    dat.Ephi = mhd.interp(esph.phi, xyzmesh).squeeze()
-    dat.Erad = mhd.interp(esph.rad, xyzmesh).squeeze()
+    dat.Bz = mhd.interp(mhd.B.z, radrng, phirng, 0, coords='rpz').squeeze()
+    dat.Ephi = mhd.interp(esph.phi, radrng, phirng, 0, coords='rpz').squeeze()
+    dat.Erad = mhd.interp(esph.rad, radrng, phirng, 0, coords='rpz').squeeze()
     return dat
 
+## Parallel asynchronous version
 client = Client()
 view = client.load_balanced_view()
 #view = client[:]
@@ -80,7 +72,9 @@ retval.wait_interactive()
 retval.get()
 client.close()
 
-# dat = map(interpolate_mhd, sim)
+## Or for testing purposes: a serial version
+# retval = map(interpolate_mhd, sim)
+
 Bz = array( [d.Bz for d in retval] )
 Ephi = array( [d.Ephi for d in retval] )
 Erad = array( [d.Erad for d in retval] )
@@ -90,9 +84,3 @@ dat.Ephi = concatenate([dat.Ephi, Ephi]) if 'Ephi' in dat else Ephi
 dat.Erad = concatenate([dat.Erad, Erad]) if 'Erad' in dat else Erad
 
 writehdf5(oname, dat)
-
-# plt.close('all')
-# ax = plt.subplot(221, polar=True)
-# im = ax.contourf(phirng, radrng, transpose((Ephi[0,:,:])), 100)
-# ax.set_rmin(0.)
-# colorbar(im)

@@ -1,0 +1,106 @@
+"""An example of calculating magnetolause location from grad(density).
+
+This example illustrates following:
+* Iterate over MHD files
+* Interpolate variables stored inside of MHD file (density)
+* Save the state by calling loopy.io.writehdf5()
+"""
+from __future__ import division, print_function, absolute_import
+
+from IPython.parallel import Client
+from scipy.interpolate import griddata
+from os.path import exists
+import tables as pytab
+import time
+import shutil
+import loopy as lpy
+from loopy.codes import ltr
+from loopy.io import readhdf5, writehdf5
+
+######################################################################
+dbeg = [2012, 10, 7] # [2012, 10, 7, 4] (LM_OMNI)
+dend = [2012, 10, 7, 0, 15] # dend = [2013, 3, 18]
+step = 30 # (sec)
+
+prefix = '../dat/baker'
+oname = '../tmp/sample_mpause_lm.h5'
+
+#prefix = '../dat/LR_OMNI_dt30/07-10Oct2012_lfmrcm'
+#oname = '../tmp/sample_eqplane_lr.h5'
+
+
+if exists(oname):
+    print('Loading previous state from: %s' % oname)
+    dat = readhdf5(oname)
+    shutil.move(oname, oname+'.bak')
+    dbeg = dat._dend
+    skip = 1
+else:
+    dat=lpy.types.struct()
+    skip = 0
+
+dat.dbeg = dbeg
+dat.dend = dend
+dat.step = step
+dat._dend = dend
+
+dat.xrng = arange(4,25,0.01, dtype=float32)
+dat.swpos = max(dat.xrng)
+
+def interpolate_mhd(mhd):
+    import loopy as lpy
+    import numpy as np
+
+    mpause_bs2ups = 2.0
+    xrng = np.arange(4,25,0.01, dtype=np.float32)
+    swpos = np.max(xrng)
+    dx = xrng[1]-xrng[0]
+    nbs2ups = np.floor(mpause_bs2ups/dx)
+
+    dnx = mhd.interp(mhd.dn, xrng, 0, 0).squeeze()
+    gnx = np.gradient(lpy.smooth(dnx, 0.5/dx), dx)
+    # Magnetopause/Bow shock location is defined at maximum/minimum gradient of
+    # the density evaluated Earth-Sun line
+    mpidx = np.argmax(gnx)
+    bsidx = np.argmin(gnx)
+
+    dat = lpy.struct()
+    dat.dnx = dnx
+    dat.mp_loc = xrng[mpidx]
+    dat.bs_loc = xrng[bsidx]
+    # dat.swbz = mhd.interp(mhd.B.z, swpos, 0, 0)
+    # dat.swdn = mhd.interp(mhd.dn, swpos, 0, 0)
+    # dat.swvx = mhd.interp(mhd.V.x, swpos, 0, 0)
+    # dat.swvy = mhd.interp(mhd.V.y, swpos, 0, 0)
+    # dat.swvz = mhd.interp(mhd.V.z, swpos, 0, 0)
+
+    return dat
+
+
+sim = ltr.FileIter(prefix, dbeg, dend, step, itskip=skip)
+
+client = Client()
+view = client.load_balanced_view()
+#view = client[:]
+# Push the variables
+#view['xyzmesh'] = xyzmesh
+retval = view.map_async(interpolate_mhd, sim, chunksize=5)
+retval.wait_interactive()
+retval.get()
+client.close()
+
+# retval = map(interpolate_mhd, sim)
+
+dnx = array( [d.dnx for d in retval] )
+mp_loc = array( [d.mp_loc for d in retval] )
+bs_loc = array( [d.bs_loc for d in retval] )
+
+dat.dnx = concatenate([dat.dnx, dnx]) if 'dnx' in dat else dnx
+dat.mp_loc = concatenate([dat.mp_loc, mp_loc]) if 'mp_loc' in dat else mp_loc
+dat.bs_loc = concatenate([dat.bs_loc, bs_loc]) if 'bs_loc' in dat else bs_loc
+
+writehdf5(oname, dat)
+
+# example of plotting the data:
+# contourf(arange(dat.dnx.shape[0]), dat.xrng, dat.dnx.transpose(), 100)
+# plot(dat.mp_loc, 'k', lw=2)
