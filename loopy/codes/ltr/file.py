@@ -22,8 +22,8 @@ class FileIter(object):
         self.step_sec = step_sec
         self.file_obj = file_obj
         self._iter = 0
-        self._skip = skip
-        self._step = step
+        self._skip = itskip
+        self._step = itstep
 
     def __iter__(self):
         self._iter = self._skip

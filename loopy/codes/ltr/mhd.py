@@ -34,18 +34,31 @@ class MHDFile(object):
 
         return sph
 
-    def interp(self, var, xyzmesh, method='linear'):
+    def interp(self, var, xi, yi, zi, coords='xyz', method='linear'):
         x = self.grid.cx.flatten()
         y = self.grid.cy.flatten()
         z = self.grid.cz.flatten()
 
         points = np.vstack( [x, y, z] ).transpose()
         values = var.flatten()
-        xi, yi, zi = xyzmesh
-        loc = np.array([xi.flatten(),yi.flatten(),zi.flatten()]).transpose()
+        xi = np.array(xi)
+        yi = np.array(yi)
+        zi = np.array(zi)
+
+        if coords=='xyz':
+            xm, ym, zm = np.meshgrid(xi, yi, zi)
+        elif coords=='rpz':
+            radmsh, phimsh, zm = np.meshgrid(xi, yi, zi)
+            xm = radmsh * np.cos(phimsh)
+            ym = radmsh * np.sin(phimsh)
+        else:
+            raise ValueError('coords argument can be either xyz or rpz')
+
+        xyzmesh = [xm.flatten(),ym.flatten(),zm.flatten()]
+        loc = np.array(xyzmesh).transpose()
         dat = griddata(points, values, loc, method=method)
 
-        return dat.reshape(xi.shape).astype(var.dtype)
+        return dat.reshape(xm.shape).astype(var.dtype)
 
     @property
     def B(self):
