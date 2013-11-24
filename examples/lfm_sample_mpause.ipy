@@ -22,11 +22,11 @@ dbeg = [2012, 10, 7] # [2012, 10, 7, 4] (LM_OMNI)
 dend = [2012, 10, 7, 0, 15] # dend = [2013, 3, 18]
 step = 30 # (sec)
 
-prefix = '../dat/baker'
+prefix = '../dat/LM_OMNI/baker'
 oname = '../tmp/sample_mpause_lm.h5'
 
 #prefix = '../dat/LR_OMNI_dt30/07-10Oct2012_lfmrcm'
-#oname = '../tmp/sample_eqplane_lr.h5'
+#oname = '../tmp/sample_mpause_lr.h5'
 
 
 if exists(oname):
