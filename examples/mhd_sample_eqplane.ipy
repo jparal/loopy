@@ -1,4 +1,10 @@
+"""An example of sampling/interpolating equatorial plane from MHD.
 
+This example illustrates following:
+* Iterate over MHD files
+* Interpolate variables stored inside of MHD file (B,E,et.)
+* Save the state by calling loopy.io.writehdf5()
+"""
 from __future__ import division, print_function, absolute_import
 
 from IPython.parallel import Client
@@ -6,42 +12,57 @@ from scipy.interpolate import griddata
 from os.path import exists
 import tables as pytab
 import time
-
+import shutil
 import loopy as lpy
 from loopy.codes import ltr
 from loopy.io import readhdf5, writehdf5
 
 ######################################################################
-
-dbeg = [2012, 10, 07]
-dend = [2012, 10, 07, 00, 04, 00]
+dbeg = [2013, 3, 16, 18] # [2012, 10, 7, 4] (LM_OMNI)
+dend = [2013, 3, 18] # dend = [2013, 3, 18]
 step = 30 # (sec)
-prefix = '~/data/121007_Baker13/baker'
-oname = 'sample_eqplane_lr.h5'
+
+prefix = '../dat/LM_dt30/Mar17-LM'
+oname = '../tmp/sample_eqplane_lm.h5'
+
+#prefix = '../dat/LR_OMNI_dt30/07-10Oct2012_lfmrcm'
+#oname = '../tmp/sample_eqplane_lr.h5'
+
 
 if exists(oname):
     print('Loading previous state from: %s' % oname)
     dat = readhdf5(oname)
+    shutil.move(oname, oname+'.bak')
     dbeg = dat._dend
     skip = 1
 else:
     dat=lpy.types.struct()
     skip = 0
 
+dat.dbeg = dbeg
+dat.dend = dend
+dat.step = step
 dat._dend = dend
-dat.radrng = arange(4,12,0.1, dtype=float32)
-dat.phirng = linspace(0, 2*pi, 101)
+dat.radrng = arange(3,14,0.1, dtype=float32)
+dat.phirng = linspace(0, 2*pi, 25)
 
-rad, phi, z = meshgrid(dat.radrng, dat.phirng, [0])
-x = rad * cos(phi)
-y = rad * sin(phi)
+dat.radmsh, dat.phimsh, z = meshgrid(dat.radrng, dat.phirng, [0])
+x = dat.radmsh * cos(dat.phimsh)
+y = dat.radmsh * sin(dat.phimsh)
 xyzmesh = [x,y,z]
 
 sim = ltr.FileIter(prefix, dbeg, dend, step, skip=skip)
 
 def interpolate_mhd(mhd):
     import loopy as lpy
-    print(mhd.fname)
+    import numpy as np
+    radrng = np.arange(3,14,0.1, dtype=np.float32)
+    phirng = np.linspace(0, 2*np.pi, 25)
+    radmsh, phimsh, z = np.meshgrid(radrng, phirng, [0])
+    x = radmsh * np.cos(phimsh)
+    y = radmsh * np.sin(phimsh)
+    xyzmesh = [x,y,z]
+
     dat = lpy.struct()
     esph = mhd.cart2sph(mhd.E)
     dat.Bz = mhd.interp(mhd.B.z, xyzmesh).squeeze()
@@ -50,16 +71,12 @@ def interpolate_mhd(mhd):
     return dat
 
 client = Client()
-view = client[:]
+view = client.load_balanced_view()
+#view = client[:]
 # Push the variables
-view['xyzmesh'] = xyzmesh
-retval = view.map_async(interpolate_mhd, sim)
-while True:
-    if retval.ready(): break
-    print('Completed: %.2f%%' % retval.progress)
-    time.sleep(5)
-
-#retval.display_outputs()
+#view['xyzmesh'] = xyzmesh
+retval = view.map_async(interpolate_mhd, sim, chunksize=5)
+retval.wait_interactive()
 retval.get()
 client.close()
 
