@@ -2,6 +2,8 @@
 import tables as pt
 import numpy as np
 import loopy as lpy
+import shutil as sh # move
+import os.path as pth # exists
 
 def readhdf5(fname, path='/'):
     """
@@ -29,7 +31,7 @@ def readhdf5(fname, path='/'):
     h5f.close()
     return dat
 
-def writehdf5(fname, data, path='/', append=False):
+def writehdf5(fname, data, path='/', append=False, backup=False):
     """
     .. py:function:: writehdf5(fname, data, path='/', append=False)
 
@@ -41,8 +43,14 @@ def writehdf5(fname, data, path='/', append=False):
     :param data: the actual data to be stored
     :type data: dict or ndarray otherwise will be converted into ndarray
     :param append: Should the data be appended to an existing file?
+    :param backup: This argument if True rename the file to .bak instead of
+    overwriting the file.
+
     :rtype: none
     """
+    if backup and pth.exists(fname):
+        sh.move(fname, fname+'.bak')
+
     mode = 'a' if append else 'w'
     filters = pt.Filters(complevel=6)
     h5f = pt.File(fname, mode)

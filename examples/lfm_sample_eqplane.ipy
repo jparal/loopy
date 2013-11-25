@@ -12,7 +12,6 @@ from scipy.interpolate import griddata
 from os.path import exists
 import tables as pytab
 import time
-import shutil
 import loopy as lpy
 from loopy.codes import ltr
 from loopy.io import readhdf5, writehdf5
@@ -32,7 +31,6 @@ oname = '../tmp/sample_mpause_lm.h5'
 if exists(oname):
     print('Loading previous state from: %s' % oname)
     dat = readhdf5(oname)
-    shutil.move(oname, oname+'.bak')
     dbeg = dat._dend
     skip = 1
 else:
@@ -83,4 +81,4 @@ dat.Bz = concatenate([dat.Bz, Bz]) if 'Bz' in dat else Bz
 dat.Ephi = concatenate([dat.Ephi, Ephi]) if 'Ephi' in dat else Ephi
 dat.Erad = concatenate([dat.Erad, Erad]) if 'Erad' in dat else Erad
 
-writehdf5(oname, dat)
+writehdf5(oname, dat, backup=True)

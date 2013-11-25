@@ -12,7 +12,6 @@ from scipy.interpolate import griddata
 from os.path import exists
 import tables as pytab
 import time
-import shutil
 import loopy as lpy
 from loopy.codes import ltr
 from loopy.io import readhdf5, writehdf5
@@ -32,7 +31,6 @@ oname = '../tmp/sample_mpause_lm.h5'
 if exists(oname):
     print('Loading previous state from: %s' % oname)
     dat = readhdf5(oname)
-    shutil.move(oname, oname+'.bak')
     dbeg = dat._dend
     skip = 1
 else:
@@ -99,7 +97,7 @@ dat.dnx = concatenate([dat.dnx, dnx]) if 'dnx' in dat else dnx
 dat.mp_loc = concatenate([dat.mp_loc, mp_loc]) if 'mp_loc' in dat else mp_loc
 dat.bs_loc = concatenate([dat.bs_loc, bs_loc]) if 'bs_loc' in dat else bs_loc
 
-writehdf5(oname, dat)
+writehdf5(oname, dat, backup=True)
 
 # example of plotting the data:
 # contourf(arange(dat.dnx.shape[0]), dat.xrng, dat.dnx.transpose(), 100)
