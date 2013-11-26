@@ -9,21 +9,31 @@ def readhdf5(fname, path='/'):
     """
     .. py:function:: writehdf5(fname, path='/')
 
-    The function traverse HDF5 files and creates structured dictionary. We assume
-    only CArray data type to be stored in the file.
+    The function traverse HDF5 files and creates structured dictionary.
 
     :param fname: File name to read.
     :param path: Root path from where to start reading.
-    :rtype: loopy.struct (i.e. dictionary)
+    :rtype: loopy.struct (i.e. dictionary) or variable
     """
     def _traverse_tree(h5f, path):
-        dat = lpy.struct()
-        for node in h5f.listNodes(where=path, classname='CArray'):
-            dat[node._v_name] = node.read()
+        # Remove double slashes and the last one
+        path = '/'+'/'.join(filter(None, path.split('/')))
+        gloc = ''.join(path.rpartition('/')[0:2])
+        name = path.rpartition('/')[2]
 
-        for node in h5f.listNodes(where=path, classname='Group'):
+        # We want to read a single variable
+        groups = h5f.listNodes(where=gloc, classname='Group')
+        nodes = h5f.listNodes(where=gloc)
+        leafs = [n for n in nodes if n not in groups]
+        leaf = [n for n in leafs if n.name == name]
+        if len(leaf) == 1:
+            return leaf[0].read()
+
+        dat = lpy.struct()
+        for node in h5f.listNodes(where=path):
             name = node._v_name
             dat[name] = _traverse_tree(h5f, path+'/'+name)
+
         return dat
 
     h5f = pt.File(fname, 'r')
