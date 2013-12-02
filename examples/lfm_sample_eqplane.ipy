@@ -17,16 +17,17 @@ from loopy.codes import ltr
 from loopy.io import readhdf5, writehdf5
 
 ######################################################################
-dbeg = [2012, 10, 7] # [2012, 10, 7, 4] (LM_OMNI)
-dend = [2012, 10, 7, 0, 2] # dend = [2013, 3, 18]
+# dbeg = [2012, 10, 7] # [2012, 10, 7] (LM_OMNI)
+# dend = [2012, 10, 10] # [2012, 10, 10] (LM_OMNI)
+# step = 30 # (sec)
+# prefix = '../dat/LM_OMNI/baker'
+# oname = '../tmp/sample_eqplane_lm.h5'
+
+dbeg = [2012, 10, 7, 4] # [2012, 10, 7, 4] (LR_OMNI_dt30)
+dend = [2012, 10, 10, 2] # [2012, 10, 10, 2] (LR_OMNI_dt30)
 step = 30 # (sec)
-
-prefix = '../dat/baker'
-oname = '../tmp/sample_mpause_lm.h5'
-
-#prefix = '../dat/LR_OMNI_dt30/07-10Oct2012_lfmrcm'
-#oname = '../tmp/sample_eqplane_lr.h5'
-
+prefix = '../dat/LR_OMNI_dt30/07-10Oct2012_lfmrcm'
+oname = '../tmp/sample_eqplane_lr.h5'
 
 if exists(oname):
     print('Loading previous state from: %s' % oname)
