@@ -35,9 +35,9 @@ if exists(oname):
     skip = 1
 else:
     dat=lpy.types.struct()
+    dat.dbeg = dbeg
     skip = 0
 
-dat.dbeg = dbeg
 dat.dend = dend
 dat.step = step
 dat._dend = dend
