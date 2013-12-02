@@ -5,3 +5,4 @@ from .data import *
 from .io import *
 from .plot import *
 from .types import *
+from .utils import *
