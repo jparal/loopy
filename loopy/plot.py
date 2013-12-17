@@ -12,9 +12,9 @@ def savefigs(fname, outdir='fig', formats=['jpg', 'png']):
     :param outdir: Output directory of the hi-res figures.
     :param formats: Requested formats (jpg|png|eps).
     """
-    if not os.path.exists(dname):
-        print 'Creating figure directory: ' + dname
-        os.makedirs(dname)
+    if not os.path.exists(outdir):
+        print 'Creating figure directory: ' + outdir
+        os.makedirs(outdir)
 
     # Thumbnail
     _savefig(fname + '.jpg', dpi=100)
