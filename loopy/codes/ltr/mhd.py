@@ -10,8 +10,9 @@ from loopy.io import loadhdf4
 __all__ = ['MHDFile', 'read_mhd_var', 'read_mhd_efield', 'read_mhd_grid']
 
 class MHDFile(object):
-    def __init__(self, fname):
+    def __init__(self, fname, date):
         self._fname = fname
+        self._date = date
         self._bfield = None
         self._efield = None
         self._velocity = None
@@ -20,8 +21,8 @@ class MHDFile(object):
 
 
     def cart2sph(self, vec):
-        """Converts a vector from Cartesian to spherical coordinates useing internal
-           grid object."""
+        """Converts a vector from Cartesian to spherical coordinates
+        useing internal grid object."""
         tht = self.grid.tht
         phi = self.grid.phi
 
@@ -35,9 +36,9 @@ class MHDFile(object):
         return sph
 
     def interp(self, var, xi, yi, zi, coords='xyz', method='linear'):
-        x = self.grid.cx.flatten()
-        y = self.grid.cy.flatten()
-        z = self.grid.cz.flatten()
+        x = self.grid.xc.flatten()
+        y = self.grid.yc.flatten()
+        z = self.grid.zc.flatten()
 
         points = np.vstack( [x, y, z] ).transpose()
         values = var.flatten()
@@ -77,7 +78,7 @@ class MHDFile(object):
 
     @property
     def dn(self):
-        """Get numer density (#/cm^2)"""
+        """Get numer density (#/cm^3)"""
         return self._get_plasma().dn
 
     @property
@@ -92,13 +93,18 @@ class MHDFile(object):
 
     @property
     def grid(self):
-        """Get total presure (keV/cm^3)"""
+        """Get grid structure"""
         return self._get_grid()
 
     @property
     def fname(self):
-        """Get total presure (keV/cm^3)"""
+        """Get name of HDF file"""
         return self._fname
+
+    @property
+    def date(self):
+        """Get name of HDF file"""
+        return self._date
 
     @staticmethod
     def get_fname_format():
@@ -293,34 +299,34 @@ def read_mhd_grid(fname):
     dat.x = x
     dat.y = y
     dat.z = z
-    dat.cx = np.zeros(ss, x.dtype)
-    dat.cy = np.zeros(ss, x.dtype)
-    dat.cz = np.zeros(ss, x.dtype)
+    dat.xc = np.zeros(ss, x.dtype)
+    dat.yc = np.zeros(ss, x.dtype)
+    dat.zc = np.zeros(ss, x.dtype)
 
     # X,Y,Z are already in Re units
-    dat.cx[ix_(i,j+1,k)] = 0.125*( \
+    dat.xc[ix_(i,j+1,k)] = 0.125*( \
     x[ix_(i  ,j  ,k  )] + x[ix_(i+1,j  ,k  )] + x[ix_(i  ,j+1,k  )] + \
     x[ix_(i+1,j+1,k  )] + x[ix_(i  ,j  ,k+1)] + x[ix_(i  ,j+1,k+1)] + \
     x[ix_(i+1,j  ,k+1)] + x[ix_(i+1,j+1,k+1)] )
 
-    dat.cy[ix_(i,j+1,k)] = 0.125*( \
+    dat.yc[ix_(i,j+1,k)] = 0.125*( \
     y[ix_(i  ,j  ,k  )] + y[ix_(i+1,j  ,k  )] + y[ix_(i  ,j+1,k  )] + \
     y[ix_(i+1,j+1,k  )] + y[ix_(i  ,j  ,k+1)] + y[ix_(i  ,j+1,k+1)] + \
     y[ix_(i+1,j  ,k+1)] + y[ix_(i+1,j+1,k+1)] )
 
-    dat.cz[ix_(i,j+1,k)] = 0.125*( \
+    dat.zc[ix_(i,j+1,k)] = 0.125*( \
     z[ix_(i  ,j  ,k  )] + z[ix_(i+1,j  ,k  )] + z[ix_(i  ,j+1,k  )] + \
     z[ix_(i+1,j+1,k  )] + z[ix_(i  ,j  ,k+1)] + z[ix_(i  ,j+1,k+1)] + \
     z[ix_(i+1,j  ,k+1)] + z[ix_(i+1,j+1,k+1)] )
 
-    dat.cx = _close_grid(dat.cx, False)
-    dat.cy = _close_grid(dat.cy, False)
-    dat.cz = _close_grid(dat.cz, False)
+    dat.xc = _close_grid(dat.xc, False)
+    dat.yc = _close_grid(dat.yc, False)
+    dat.zc = _close_grid(dat.zc, False)
 
     # Spherical coordinates of grid centers
-    dat.rad = np.sqrt(dat.cx**2 + dat.cy**2 + dat.cz**2) # Radius
-    dat.tht = np.arccos(dat.cz / dat.rad)
-    dat.phi = np.arctan2(dat.cx, dat.cy)
+    dat.rad = np.sqrt(dat.xc**2 + dat.yc**2 + dat.zc**2) # Radius
+    dat.tht = np.arccos(dat.zc / dat.rad)
+    dat.phi = np.arctan2(dat.xc, dat.yc)
 
     return dat
 

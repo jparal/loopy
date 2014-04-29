@@ -25,17 +25,28 @@ class FileIter(object):
         self._skip = itskip
         self._step = itstep
 
+    def get_date(self, it):
+        dt=dtime.timedelta(seconds=self.step_sec) * it
+        date = self.start + dt
+        return date
+
     def __iter__(self):
         self._iter = self._skip
         return self
 
+    def __getitem__(self, it):
+        date = self.get_date(it)
+        return self._get_item(date)
+
     def next(self):
-        dt=dtime.timedelta(seconds=self.step_sec) * self._iter
-        date = self.start + dt
+        date = self.get_date(self._iter)
         if date > self.stop:
             raise StopIteration
 
         self._iter += self._step
+        return self._get_item(date)
+
+    def _get_item(self, date):
         # Example: baker_mhd_2012-10-07T00-09-00Z.hdf
         date_str='{:%Y-%m-%dT%H-%M-%SZ}'.format(date)
         fname = self.file_obj.get_fname_format()
@@ -45,4 +56,4 @@ class FileIter(object):
         if not exists(fname):
             raise IOError('File not found: %s' % fname)
         else:
-            return self.file_obj(fname)
+            return self.file_obj(fname, date=date)
